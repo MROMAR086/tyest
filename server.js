@@ -1,47 +1,55 @@
-const express = require('express');
-const bodyParser = require('body-parser');
-const fetch = require('node-fetch');
-const cors = require('cors');
+import express from "express";
+import bodyParser from "body-parser";
+import cors from "cors";
+import fetch from "node-fetch";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors()); // allow your website to call this API
+// Middlewares
+app.use(cors());
 app.use(bodyParser.json());
 
-const BREVO_API_KEY = '"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"';
-const INBOX_ID = 'Laggy';
+// Test route
+app.get("/", (req, res) => {
+  res.send("Backend is running!");
+});
 
-app.post('/send-message', async (req, res) => {
+// Contact form endpoint
+app.post("/send-message", async (req, res) => {
   const { name, email, message } = req.body;
 
   if (!name || !email || !message) {
-    return res.status(400).json({ error: 'All fields are required' });
+    return res.status(400).json({ error: "All fields are required" });
   }
 
   try {
-    const response = await fetch('https://api.brevo.com/v3/conversations/messages', {
-      method: 'POST',
+    const response = await fetch("https://api.brevo.com/v3/conversations/messages", {
+      method: "POST",
       headers: {
-        'Content-Type': 'application/json',
-        'api-key': "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"
+        "Content-Type": "application/json",
+        "api-key": process.env.BREVO_API_KEY
       },
       body: JSON.stringify({
         sender: { name, email },
         message: { text: message },
-        inboxId: INBOX_ID
+        inboxId: process.env.INBOX_ID
       })
     });
 
-    if (response.ok) {
-      res.json({ success: true });
-    } else {
+    if (!response.ok) {
       const err = await response.json();
-      res.status(500).json({ error: err });
+      return res.status(500).json({ error: err });
     }
-  } catch (error) {
-    res.status(500).json({ error: error.message });
+
+    res.status(200).json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
   }
 });
 
-app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
+// Start server
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
